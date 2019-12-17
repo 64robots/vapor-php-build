@@ -50,8 +50,13 @@ foreach (array_keys($regions) as $region) {
         $publishResponse = $lambda->publishLayerVersion([
             'LayerName' => 'vapor-'.$layer,
             'Description' => $description,
+            // 'Content' => [
+            //     'ZipFile' => file_get_contents(__DIR__."/export/{$layer}.zip"),
+
+            // ],
             'Content' => [
-                'ZipFile' => file_get_contents(__DIR__."/export/{$layer}.zip"),
+                'S3Bucket' => '64r-vapor-layer',
+                'S3Key' => '',
             ],
         ]);
 
