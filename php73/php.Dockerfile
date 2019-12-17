@@ -54,6 +54,62 @@ RUN set -xe; \
     make install \
     && rm ${INSTALL_DIR}/lib/libz.a
 
+# Build ghostscript
+
+ARG ghostscript
+ENV GHOST_BUILD_DIR=${BUILD_DIR}/ghostscript
+
+RUN set -xe; \
+    mkdir -p ${GHOST_BUILD_DIR}; \
+    curl -Ls https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs950/ghostscript-9.50-linux-x86_64.tgz \
+    | tar xzC ${GHOST_BUILD_DIR} --strip-components=1
+
+WORKDIR  ${GHOST_BUILD_DIR}/
+
+RUN set -xe; \
+    CFLAGS="" \
+    CPPFLAGS="-I${INSTALL_DIR}/include  -I/usr/include" \
+    LDFLAGS="-L${INSTALL_DIR}/lib64 -L${INSTALL_DIR}/lib" \
+    ./configure \
+        --prefix=${INSTALL_DIR} \
+        --enable-shared \
+        --disable-static
+
+RUN set -xe; \
+    make install
+
+# Build magick (https://imagemagick.org/download)
+
+RUN LD_LIBRARY_PATH= yum install -y libltdl-dev libtool-ltdl-devel fftw3-devel jasper-devel jasper
+
+ARG magick
+ENV VERSION_MAGICK=${magick}
+ENV MAGICK_BUILD_DIR=${BUILD_DIR}/magick
+
+RUN set -xe; \
+    mkdir -p ${MAGICK_BUILD_DIR}; \
+    curl -Ls https://imagemagick.org/download/ImageMagick-${VERSION_MAGICK}.tar.xz \
+    | tar xJC ${MAGICK_BUILD_DIR} --strip-components=1
+
+WORKDIR  ${MAGICK_BUILD_DIR}/
+
+RUN set -xe; \
+    CFLAGS="" \
+    CPPFLAGS="-I${INSTALL_DIR}/include  -I/usr/include" \
+    LDFLAGS="-L${INSTALL_DIR}/lib64 -L${INSTALL_DIR}/lib" \
+    ./configure \
+        --prefix=${INSTALL_DIR} \
+        --with-frozenpaths \
+        --with-modules \
+        --with-jp2 \
+        --without-magick-plus-plus \
+        --enable-shared \
+        --enable-symbol-prefix \
+        --disable-static
+
+RUN set -xe; \
+    make install
+
 # Build OpenSSL (https://github.com/openssl/openssl/releases)
 
 ARG openssl
@@ -328,7 +384,7 @@ RUN set -xe; \
 
 WORKDIR  ${PHP_BUILD_DIR}/
 
-RUN LD_LIBRARY_PATH= yum install -y readline-devel gettext-devel libicu-devel libxslt-devel
+RUN LD_LIBRARY_PATH= yum install -y readline-devel gettext-devel libicu-devel libxslt-devel ImageMagick-devel
 
 RUN set -xe \
  && ./buildconf --force \
@@ -381,6 +437,7 @@ RUN set -xe; \
     cp php.ini-production ${INSTALL_DIR}/etc/php/php.ini
 
 # RUN pecl install mongodb
+RUN pecl install imagick
 RUN pecl install -f redis-4.3.0
 # RUN pecl install redis
 

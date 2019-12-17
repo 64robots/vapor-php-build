@@ -54,6 +54,31 @@ RUN set -xe; \
     make install \
     && rm ${INSTALL_DIR}/lib/libz.a
 
+# Build imagick (https://imagemagick.org/download)
+
+ARG imagick
+ENV VERSION_IMAGICK=${imagick}
+ENV IMAGICK_BUILD_DIR=${BUILD_DIR}/imagick
+
+RUN set -xe; \
+    mkdir -p ${IMAGICK_BUILD_DIR}; \
+    curl -Ls https://imagemagick.org/download/ImageMagick-${VERSION_IMAGICK}.tar.xz \
+    | tar xJC ${IMAGICK_BUILD_DIR} --strip-components=1
+
+WORKDIR  ${IMAGICK_BUILD_DIR}/
+
+RUN set -xe; \
+    CFLAGS="" \
+    CPPFLAGS="-I${INSTALL_DIR}/include  -I/usr/include" \
+    LDFLAGS="-L${INSTALL_DIR}/lib64 -L${INSTALL_DIR}/lib" \
+    ./configure \
+        --prefix=${INSTALL_DIR} \
+        --enable-shared \
+        --disable-static
+
+RUN set -xe; \
+    make install
+
 # Build OpenSSL (https://github.com/openssl/openssl/releases)
 
 ARG openssl
